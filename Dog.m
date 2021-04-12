@@ -5,10 +5,12 @@ classdef Dog
         plot_vault;
         desired_pose;
         d_dot;
+        Id;
     end
     methods
-        function self = Dog(P)
+        function self = Dog(P,id)
             self.pose = rand(1,2)*(P.max_bound-P.min_bound)+P.min_bound;
+            self.Id = id;
         end
         function self = Update(self,P,sheep_mean,goal)
             away_goal = pi+ self.delta_j + goal.goal_direction;

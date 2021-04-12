@@ -16,12 +16,12 @@ while norm(sheep_mean.pose - goal.pose)>=0.1
         dogs(j) = dogs(j).Update(P,sheep_mean,goal);
     end
     for i =1:length(sheeps)
-        sheeps(i) = sheeps(i).Update(P,dogs);
+        sheeps(i) = sheeps(i).Update(P,dogs,sheeps);
     end
     sheep_mean = sheep_mean.Update(sheeps);
     offset_point = offset_point.Update(P,sheep_mean);
     goal = goal.Update(sheep_mean,offset_point);
     animator = animator.Update(P,dogs,sheeps,goal,sheep_mean,offset_point);
-    pause(0.00001)
+    pause(0.01)
     count = count + 1;
 end

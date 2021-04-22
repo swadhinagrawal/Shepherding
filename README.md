@@ -5,4 +5,4 @@ Non cooperative shepherding in matlab(paper by Alyssa Pierson)
 Swadhin Agrawal
 \
 **Supervisor**
-Dr Sujit P.B
+Dr Sujit P.B.

@@ -3,7 +3,6 @@ params;
 dogs = Generator(P.num_herders,@Dog,P);
 sheeps = Generator(P.num_walkers,@Sheep,P);
 
-
 sheep_mean = SheepMean(sheeps);
 offset_point = PointOffset(P,sheep_mean);
 goal = Goal(P,sheep_mean,offset_point);

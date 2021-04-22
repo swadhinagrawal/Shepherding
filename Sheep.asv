@@ -28,15 +28,16 @@ classdef Sheep
         function self = Update(self,P,dogs,sheeps)
             self = self.Neighbours(sheeps);
             net_steering = self.NetSteering(P);
+            s_dot_past = self.s_dot/norm(self.s_dot);
             self.s_dot = net_steering*P.dt;
             for k = 1:length(dogs)
                 self.s_dot = self.s_dot + (- dogs(k).pose + self.pose)/(norm(dogs(k).pose - self.pose)^3);
             end
-%             self.pose = self.pose + P.dt*self.s_dot;
-            angle_arithmatic = AngleWrap(atan2(self.s_dot(2),self.s_dot(1))) - self.heading;
-            
-            self.heading = self.heading + P.dt*angle_arithmatic;
-            self.pose = self.pose + norm(P.dt*self.s_dot)*[cos(self.heading),sin(self.heading)];
+            self.pose = self.pose + P.dt*self.s_dot;
+            new_direct = dot(s_dot_past,self.s_dot)/norm(self.s_dot);
+            angle_arithmatic = atan2(self.s_dot(2),self.s_dot(1)) - atan2(s_dot_past(2),s_dot_past(1));
+            angle_arithmatic = angle_arithmatic/abs(angle_arithmatic);
+            self.heading = self.heading + P.dt * acos(new_direct)*ar;
         end
         function self = Neighbours(self,sheeps)
             self.zor = [];
@@ -76,7 +77,7 @@ classdef Sheep
             for i = 1:length(self.zoo)
                 align = align + (self.zoo(i,1).s_dot/norm(self.zoo(i,1).s_dot));
             end
-            force_o = align/length(self.zoo);
+            force_o = align;
         end
         function force_a = Cohesion(self)
             attract = [0.0,0.0];

@@ -24,3 +24,4 @@ while norm(sheep_mean.pose - goal.pose)>=0.1
     pause(0.01)
     count = count + 1;
 end
+close(animator.myVideo)

@@ -3,10 +3,15 @@ classdef Animation
        sheep_body_size;
        figure;
        encirclement;
+       myVideo;
+       frames;
     end
     methods
         function self = Animation(P,dogs,sheeps,goal,sheep_mean,offset_point)
             self.sheep_body_size = P.sheep_body_size;
+            self.myVideo = VideoWriter('Shepherding.avi');
+            self.myVideo.FrameRate = 20;
+            open(self.myVideo)
             self.figure = figure();
             hold on
             for i = 1:length(dogs)
@@ -23,6 +28,8 @@ classdef Animation
             axis equal
             xlim([-5 40])
             ylim([-5 40])
+            self.frames = getframe(self.figure);
+            writeVideo(self.myVideo,self.frames);
         end
         function self = Update(self,P,dogs,sheeps,goal,sheep_mean,offset_point)
             clf;
@@ -42,6 +49,8 @@ classdef Animation
             axis equal
             xlim([-5 40])
             ylim([-5 40])
+            self.frames = getframe(self.figure);
+            writeVideo(self.myVideo,self.frames);
         end
     end
 end

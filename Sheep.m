@@ -15,7 +15,11 @@ classdef Sheep
             for k = 1:length(dogs)
                 self.s_dot = self.s_dot + (- dogs(k).pose + self.pose)/(norm(dogs(k).pose - self.pose)^3);
             end
-            self.pose = self.pose + P.dt*self.s_dot;
+%             self.pose = self.pose + P.dt*self.s_dot;
+            angle_arithmatic = AngleWrap(atan2(self.s_dot(2),self.s_dot(1))) - self.heading;
+            
+            self.heading = self.heading + P.dt*angle_arithmatic;
+            self.pose = self.pose + norm(P.dt*self.s_dot)*[cos(self.heading),sin(self.heading)];
         end
     end
 end  

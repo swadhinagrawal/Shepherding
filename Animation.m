@@ -3,9 +3,14 @@ classdef Animation
        sheep_body_size;
        figure;
        encirclement;
+       frames;
+       myVideo;
     end
     methods
         function self = Animation(P,dogs,sheeps,goal,sheep_mean,offset_point)
+            self.myVideo = VideoWriter('shepherding.avi');
+            self.myVideo.FrameRate = 10;
+            open(self.myVideo)
             self.sheep_body_size = P.sheep_body_size;
             self.figure = figure();
             hold on
@@ -21,8 +26,10 @@ classdef Animation
             self.encirclement = viscircles(sheep_mean.pose,P.d_s_closeness,'color',[0.4940 0.1840 0.5560],'LineWidth',0.5,'LineStyle','-.');
             hold off
             axis equal
-            xlim([0 20])
-            ylim([0 20])
+            xlim([-10 40])
+            ylim([-10 40])
+            self.frames = [getframe(self.figure)];
+            writeVideo(self.myVideo,self.frames(length(self.frames)));
         end
         function self = Update(self,P,dogs,sheeps,goal,sheep_mean,offset_point)
             clf;
@@ -39,8 +46,10 @@ classdef Animation
             self.encirclement = viscircles(sheep_mean.pose,P.d_s_closeness,'color',[0.4940 0.1840 0.5560],'LineWidth',0.5,'LineStyle','-.');
             hold off
             axis equal
-            xlim([0 20])
-            ylim([0 20])
+            xlim([-10 40])
+            ylim([-10 40])
+            self.frames = [self.frames,getframe(self.figure)];
+            writeVideo(self.myVideo,self.frames(length(self.frames)));
         end
     end
 end

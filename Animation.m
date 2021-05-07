@@ -5,9 +5,13 @@ classdef Animation
        encirclement;
        myVideo;
        frames;
+       dog_history;
+       sheep_history;
     end
     methods
         function self = Animation(P,dogs,sheeps,goal,sheep_mean,offset_point)
+            self.dog_history = [];
+            self.sheep_history = [];
             self.sheep_body_size = P.sheep_body_size;
             self.myVideo = VideoWriter('Shepherding.avi');
             self.myVideo.FrameRate = 20;
@@ -30,6 +34,8 @@ classdef Animation
             ylim([-5 40])
             self.frames = getframe(self.figure);
             writeVideo(self.myVideo,self.frames);
+            self.dog_history = [self.dog_history ; [dogs(:).pose]];
+            self.sheep_history = [self.sheep_history ; [sheeps(:).pose]];
         end
         function self = Update(self,P,dogs,sheeps,goal,sheep_mean,offset_point)
             clf;
@@ -37,9 +43,15 @@ classdef Animation
             self.encirclement = viscircles(sheep_mean.pose,P.d_s_closeness,'color',[0.4940 0.1840 0.5560],'LineWidth',0.5,'LineStyle','-.');
             for i = 1:length(dogs)
                 dogs(i).plot_vault = plot(dogs(i).pose(1),dogs(i).pose(2),'.r','MarkerSize',20);
+%                 for j=1:2:2*length(dogs)
+%                     plot(self.dog_history(:,j),self.dog_history(:,j+1),'.r','MarkerSize',0.1);
+%                 end
             end
             for i = 1:length(sheeps)
                 sheeps(i).plot_vault = quiver(sheeps(i).pose(1),sheeps(i).pose(2),self.sheep_body_size*cos(sheeps(i).heading),self.sheep_body_size*sin(sheeps(i).heading),'-ob');
+%                 for j=1:2:2*length(sheeps)
+%                     plot(self.sheep_history(:,j),self.sheep_history(:,j+1),'.b','MarkerSize',0.1);
+%                 end
             end
             goal.plot_vault = plot(goal.pose(1),goal.pose(2),'ok','MarkerSize',50);
             sheep_mean.plot_vault = plot(sheep_mean.pose(1),sheep_mean.pose(2),'.g','MarkerSize',20);
@@ -51,6 +63,8 @@ classdef Animation
             ylim([-5 40])
             self.frames = getframe(self.figure);
             writeVideo(self.myVideo,self.frames);
+%             self.dog_history = [self.dog_history ; [dogs(:).pose]];
+%             self.sheep_history = [self.sheep_history ; [sheeps(:).pose]];
         end
     end
 end

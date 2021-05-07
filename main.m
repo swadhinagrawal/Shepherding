@@ -8,7 +8,9 @@ offset_point = PointOffset(P,sheep_mean);
 goal = Goal(P,sheep_mean,offset_point);
 animator = Animation(P,dogs,sheeps,goal,sheep_mean,offset_point);
 count = 0;
-while norm(sheep_mean.pose - goal.pose)>=0.1
+
+while norm(sheep_mean.pose - goal.pose)>=0.8
+    P.d_s_closeness = abs(RadialController(P,sheeps,sheep_mean,P.d_s_closeness));
     delta = AngleWrap(Delta(P,norm(goal.desired_velocity)));
     for j =1:length(dogs)
         dogs(j).delta_j = delta*(2*j-P.num_herders-1)/(2*P.num_herders - 2);

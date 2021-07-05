@@ -13,10 +13,20 @@ classdef Sheep
         Ro;
         Ra;
         visibility;
+        interaction_force;
+        obstacle_f;
+        dog_force;
     end
     methods
         function self = Sheep(P,id)
             self.pose = rand(1,2)*P.herd_radius+P.herd_center;
+            dist = [];
+            for i =1:length(P.Obstacles(:,1))
+                dist = [dist,norm(self.pose-P.Obstacles(i,1:2))];
+            end
+            while any(dist(:)<max(P.Obstacles(:,3)))    
+                self.pose = rand(1,2)*P.herd_radius+P.herd_center;
+            end
             self.heading = rand(1,1)*2*pi;
             self.Rr = P.Rr;
             self.Ro = P.Ro;
@@ -28,15 +38,34 @@ classdef Sheep
         function self = Update(self,P,dogs,sheeps)
             self = self.Neighbours(sheeps);
             net_steering = self.NetSteering(P);
-            self.s_dot = net_steering*P.dt;
+            net_steering = net_steering * self.Saturate(P.intersheep_interaction_limit,norm(net_steering))/norm(net_steering);
+            self.interaction_force = net_steering*P.dt;
+            self.obstacle_f = self.Force(P);
+            self.s_dot = self.interaction_force + self.obstacle_f;
+            self.dog_force = [0,0];
             for k = 1:length(dogs)
-                self.s_dot = self.s_dot + (- dogs(k).pose + self.pose)/(norm(dogs(k).pose - self.pose)^3);
+                self.dog_force = self.dog_force + (- dogs(k).pose + self.pose)/(norm(dogs(k).pose - self.pose)^3);
             end
-%             self.pose = self.pose + P.dt*self.s_dot;
+            self.dog_force = self.dog_force * self.Saturate(P.Dog_sheep_interaction_limit,norm(self.dog_force))/norm(self.dog_force);
+            self.s_dot = self.s_dot + self.dog_force;
             angle_arithmatic = AngleWrap(atan2(self.s_dot(2),self.s_dot(1))) - self.heading;
             
             self.heading = self.heading + P.dt*angle_arithmatic;
             self.pose = self.pose + norm(P.dt*self.s_dot)*[cos(self.heading),sin(self.heading)];
+        end
+        function value = Saturate(self,limit,value)
+            if value>limit
+                value = limit;
+            end
+        end
+        function obstacle_force = Force(self,P)
+            obstacle_force = [0,0];
+            for i=1:length(P.Obstacles(:,1))
+                dij = norm(P.Obstacles(i,1:2)-self.pose);
+                if dij<1.3*P.Obstacles(i,3) 
+                    obstacle_force = - ((P.Obstacles(i,1:2)-self.pose)/dij*(dij-P.Obstacles(i,3))^2);
+                end
+            end
         end
         function self = Neighbours(self,sheeps)
             self.zor = [];

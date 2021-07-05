@@ -1,0 +1,66 @@
+#VRML_SIM R2021a utf8
+WorldInfo {
+  info [
+    "Pioneer 3DX (Adept Mobile Robots)"
+    "This two-wheel, two-motor differential drive robot has in addition a rear caster wheel"
+    "It is programmed to perform a simple obstacle avoidance behavior based on the values sensed by its 16 sonars"
+  ]
+  title "Pioneer 3-DX with a Matlab programming interface"
+  basicTimeStep 8
+  coordinateSystem "NUE"
+}
+Viewpoint {
+  fieldOfView 0.660595
+  orientation -0.9957188242450159 -0.09041921398203852 -0.019193456879708866 0.3238150515354946
+  position -1.124613083135563 3.8798828222805923 14.316594398114267
+  follow "Pioneer 3-DX"
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+RectangleArena {
+  floorSize 600 600
+  floorTileSize 2 2
+  wallThickness 0.1
+  wallHeight 0.4
+  wallAppearance PBRAppearance {
+    baseColorMap ImageTexture {
+      url [
+        "textures/red_brick_wall.jpg"
+      ]
+    }
+    roughness 1
+    metalness 0
+    textureTransform TextureTransform {
+      scale 11 13
+    }
+  }
+}
+CardboardBox {
+  translation -1.48831 0.15 0.352735
+  size 0.3 0.3 0.6
+}
+DEF PIONEER_3DX Pioneer3dx {
+  hidden position_0_0 3.8821033831250884e-05
+  hidden position_0_1 63.24889617655464
+  hidden position_0_2 64.77476182200144
+  hidden linearVelocity_0 -0.12629519373059483 1.2110415347338446e-12 0.4950437702382307
+  hidden angularVelocity_0 -9.867512981235517e-09 -3.274927656148595e-05 3.854895536909816e-08
+  hidden rotation_1 0 1 0 3.8821034104129e-05
+  hidden position_1_0 -166.91409512007607
+  hidden linearVelocity_1 -0.1262910044164421 -2.8695640005330404e-12 0.4950448390895089
+  hidden angularVelocity_1 -1.1671030915088172e-08 -3.2968238389505395e-05 4.561763765854886e-08
+  hidden rotation_2 -1 0 0 3.551277133406821
+  hidden linearVelocity_2 -0.1262907123655424 -3.1038368351124635e-12 0.4950449136119958
+  hidden angularVelocity_2 13.201255114315332 -5.5591805694299916e-05 3.3675272421710014
+  hidden rotation_4 -1 0 0 0.41704310475877354
+  hidden linearVelocity_4 -0.1262984945648061 6.439571212664599e-09 0.4950485131594292
+  hidden angularVelocity_4 5.0773568211057425 -3.534725189307009e-05 1.2953989982210776
+  hidden rotation_9 -1 0 0 1.9429087502055726
+  hidden linearVelocity_9 -0.12629581862029512 -6.434603384564575e-09 0.4950380246344112
+  hidden angularVelocity_9 5.077354814044407 -3.534704446694897e-05 1.295398485995935
+  translation -2.2049521609440474 0.096943679927853 6.095729132273568
+  rotation 0.0020354803834248185 0.9998665366640043 -0.01621004870869271 2.8918220835884436
+  controller "pioneer3dx_matlab"
+}

@@ -11,6 +11,6 @@ else
     % selects a random action based on a uniform distribution
     % +1 because randint goes from 0 to N-1 and matlab matrices goes from
     % 1 to N
-    a = randint(1,1,actions)+1;
+    a = randi(1,1,actions)+1;
 end
 

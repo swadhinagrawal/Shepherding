@@ -25,6 +25,7 @@ class params:
         self.sheep_body = 0.2
         self.goal_radius = 5
         self.Dog_sheep_interaction_limit = 2
+        self.goal_threshold = self.goal_radius/self.num_S
 
 class Dog:
     def __init__(self,id,P):
@@ -33,8 +34,15 @@ class Dog:
         self.pose = np.random.rand(1,2)[0]*(self.params.boundary_max-self.params.boundary_min) + self.params.boundary_min
         self.d_dot = None
     
-    def update(self):
-        pass
+    def doAction(self,a,s,sheepMean):
+        force_mag = 1.0
+        force = force_mag*np.array(a)
+        self.d_dot = force*self.params.dt
+        self.pose += force*(self.params.dt**2)
+
+        # s = np.array([self.pose[0],self.pose[1],self.d_dot[0],self.d_dot[1],sheepMean.remaining_path,sheepMean.compass])
+        s = np.array([0,0,0,0,sheepMean.remaining_path,sheepMean.compass])
+        return s
 
 class Sheep:
     def __init__(self,id,P):
@@ -64,11 +72,18 @@ class Sheep:
         return self
 
 class SheepMean:
-    def __init__(self,sheeps):
+    def __init__(self,sheeps,E,init):
         self.pose = np.zeros(2)
+        self.compass = 0
         for agents in sheeps:
             self.pose = self.pose + agents.pose
+            self.compass += agents.heading
         self.pose = self.pose/len(sheeps)
+        self.compass = self.compass/len(sheeps)
+        if init == 0:
+            goal_d = E.angleWrap(np.arctan2(E.goal_direction[1],E.goal_direction[0]))
+            self.compass = abs(self.compass - goal_d)
+            self.remaining_path = np.linalg.norm(E.goal_direction)
 
 class Environment:
     def __init__(self,P):
@@ -156,13 +171,20 @@ class Environment:
         self.goal_direction = self.goal_pose - sheep_mean.pose
 
 class RLBase:
-    def __init__(self,acts):
-        self.actions = acts#[[0,0],[0,5],[0,-5],[-5,0],[5,0]]
-        self.states_list = np.array([])
+    def __init__(self,acts,alpha,gamma,epsilon,maxSteps,P):
+        self.actions = acts
+        self.states_list = []
         self.QT = None
         self.current_state = None
+        self.alpha = alpha
+        self.gamma = gamma
+        self.epsilon = epsilon
+        self.maxSteps = maxSteps
+        self.n_acts = len(self.actions)
+        self.n_states = len(self.states_list)
+        self.params = P
     
-    def states(self,x,y,vx,vy):
+    def states(self,x,y,vx,vy,remaining_path_min,remaining_path_max,compass_min,compass_max):
         x_min = x[0]
         x_max = x[1]
         y_min = y[0]
@@ -172,35 +194,92 @@ class RLBase:
         vy_min = vy[0]
         vy_max = vy[1]
 
-        for i in np.arange(x_min,x_max,0.1):
-            for j in np.arange(y_min,y_max,0.1):
-                for k in np.arange(vx_min,vx_max,0.1):
-                    for l in np.arange(vy_min,vy_max,0.1):
-                        np.append(self.states_list,np.array([i,j,k,l]))
-
-    # def action(self,choice):
-    #     if choice=='O':
-    #         act = self.actions[0]
-    #     elif choice=='W':
-    #         act = self.actions[1]
-    #     elif choice=='S':
-    #         act = self.actions[2]
-    #     elif choice=='A':
-    #         act = self.actions[3]
-    #     elif choice=='D':
-    #         act = self.actions[4]
-    #     return act
+        # for i in np.arange(x_min,x_max,0.1):
+        #     for j in np.arange(y_min,y_max,0.1):
+        #         for k in np.arange(vx_min,vx_max,0.1):
+        #             for l in np.arange(vy_min,vy_max,0.1):
+        for m in np.arange(remaining_path_min,remaining_path_max,1):
+            for n in np.arange(compass_min,compass_max,0.1):
+                self.states_list.append(np.array([0,0,0,0,m,n]))
+        self.states_list = np.array(self.states_list)
+        # print(self.states_list.shape)
+                # np.append(self.states_list,np.array([i,j,k,l,m,n]))
+                
     
+    def reward(self,s): # Need to redesign when base code works (pass current state)
+        destination = False
+        r = 100 - abs(s[5])*10 - abs(s[4])*20
+        if s[5] < self.params.goal_threshold:
+            r = -10000
+            destination = True
+        return [r,destination]
+
     def QTable(self):
-        self.QTable = np.zeros((len(self.states_list),len(self.actions)))
+        self.QT = np.random.rand(len(self.states_list),len(self.actions))
 
-    def discretize(self,x):
-        self.current_state = np.argmin(self.states_list-x)
+    def discretize(self,x):#current state
+        self.current_state = np.where(np.array(abs(self.states_list-x)) == np.amin(abs(self.states_list-x),axis=0))
 
-    def best_action(self,s):
-        act = max(self.QT[s,:])
+    def best_action(self,s):#current state index
+        act = np.where(self.QT[s,:] == np.amax(self.QT[s,:]))
         choosen_action  = np.random.randint(0,len(act))
-        return act[choosen_action]
+        return choosen_action
+
+    def epsilonGreedy(self,s):#current state index
+        if np.random.rand()>self.epsilon:
+            a = self.best_action(s)
+        else:
+            a = np.random.randint(0,self.n_acts)
+        return a
+
+    def updateSARSA(self,s,a,r,sp,ap):# index of current and previous state and action
+        # print(self.QT[s,a])
+        # print("yes")
+        self.QT[s,a] += self.alpha *(r + self.gamma*self.QT[sp,ap] - self.QT[s,a]) 
+
+    def episode(self):
+        x = [0,0,0,0,40,0.4]
+        steps = 0
+        totalReward = 0
+        self.discretize(x)
+        s = self.current_state
+        a = self.epsilonGreedy(s)
+        # print(s)
+        E = Environment(self.params)
+        dogs = E.agentGenerator(self.params.num_D,Dog)
+        sheeps = E.agentGenerator(self.params.num_S,Sheep)
+        init = 1
+        sheep_mean = SheepMean(sheeps,E,init)
+        init = 0
+        anim = Animation(dogs,sheeps,sheep_mean,self.params)
+
+        for i in range(self.maxSteps):
+            # print(a)
+            # print(s)
+            for sh in range(len(sheeps)):
+                sheeps[sh] = sheeps[sh].update(sheeps,dogs,E)
+            E.goal(sheep_mean)
+            sheep_mean = SheepMean(sheeps,E,init)
+            anim.update(dogs,sheeps,sheep_mean)
+            plt.show()
+            plt.pause(0.0001)
+            action = self.actions[a]
+            ns = dogs[0].doAction(action,x,sheep_mean)
+            [r,flag] = self.reward(ns)
+            totalReward += r
+            self.discretize(ns)
+            index_ns = self.current_state
+
+            na = self.epsilonGreedy(index_ns)
+            self.updateSARSA(s,a,r,index_ns,na)
+            s = index_ns
+            a = na
+            x = ns
+            steps += 1
+            if flag == True:
+                break
+
+        return [totalReward,steps]
 
 class Animation:
     def __init__(self,dogs,sheeps,sheepMean,P):
@@ -227,6 +306,7 @@ class Animation:
             self.ax[0,0].scatter(dogs[dg].pose[0],dogs[dg].pose[1],color='red',s = 10,marker='o')
         for sh in range(len(sheeps)):
             self.ax[0,0].quiver(sheeps[sh].pose[0],sheeps[sh].pose[1],self.params.sheep_body*np.cos(sheeps[sh].heading),self.params.sheep_body*np.sin(sheeps[sh].heading),color='blue',linewidths = 0.3)
+        plt.show()
     
     def update(self,dogs,sheeps,sheepMean):
         self.ax[0,0].clear()
@@ -240,35 +320,34 @@ class Animation:
             self.ax[0,0].scatter(dogs[dg].pose[0],dogs[dg].pose[1],color='red',s = 10,marker='o')
         for sh in range(len(sheeps)):
             self.ax[0,0].quiver(sheeps[sh].pose[0],sheeps[sh].pose[1],self.params.sheep_body*np.cos(sheeps[sh].heading),self.params.sheep_body*np.sin(sheeps[sh].heading),color='blue',linewidths = 0.3)
-    
-def Main():
-    P = params()
-    E = Environment(P)
-    dogs = E.agentGenerator(P.num_D,Dog)
-    sheeps = E.agentGenerator(P.num_S,Sheep)
-    sheep_mean = SheepMean(sheeps)
-    anim = Animation(dogs,sheeps,sheep_mean,P)
-    t = 0
-    
-    while np.linalg.norm(sheep_mean.pose-E.goal_pose)>0.5:
-        for sh in range(len(sheeps)):
-            sheeps[sh] = sheeps[sh].update(sheeps,dogs,E)
-        sheep_mean = SheepMean(sheeps)
-        E.goal(sheep_mean)
-        t = t+P.dt
-        plt.pause(0.0001)
-        anim.update(dogs,sheeps,sheep_mean)
         plt.show()
-
-Main()
-actions = [[0,0],[0,5],[0,-5],[-5,0],[5,0]]
-RL = RLBase(actions)
-RL.states([0,80],[0,80],[0,2],[0,2])
-n_acts = len(actions)
-n_states = len(RL.states_list)
-RL.QTable()
+    
+P = params()
+num_episodes = 1000
+actions = [[0,0],[0,2],[0,-2],[-2,0],[2,0]]
 alpha = 0.3
-gamma = 1.0
+gamma = 1
 epsilon = 0.001
+maxSteps = 2
 
+RL = RLBase(actions,alpha,gamma,epsilon,maxSteps,P)
+RL.states([0,80],[0,80],[0,2],[0,2],0,80,0,2*np.pi/10)
 
+RL.QTable()
+# print(RL.QT.shape)
+
+x = []
+y = []
+for eps in range(num_episodes):
+    [totalReward,steps] = RL.episode()
+    print("Episode",eps,"steps",steps,"Reward",totalReward,"Epsilon",RL.epsilon)
+    RL.epsilon *= 0.99
+    print(RL.epsilon)
+    x.append(eps-1)
+    y.append(steps)
+    plt.plot(x,y)
+    plt.xlabel("Episodes")
+    plt.ylabel("Steps")
+    plt.show()
+    plt.pause(0.0001)
+    plt.close()

@@ -345,6 +345,7 @@ for eps in range(num_episodes):
     [totalReward,steps] = RL.episode()
     print("Episode",eps,"steps",steps,"Reward",totalReward,"Epsilon",RL.epsilon)
     RL.epsilon *= 0.99
+    np.save("QT.npy",RL.QT)
     print(RL.epsilon)
     x.append(eps-1)
     y.append(steps)

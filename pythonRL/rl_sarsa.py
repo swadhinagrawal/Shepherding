@@ -10,7 +10,7 @@ class params:
         #   RL params
         self.steps_per_Epi = 2000
         #   Simulation params
-        self.dt = 0.1
+        self.dt = 0.5
         #   Environment params
         self.boundary_min = 0
         self.boundary_max = 80
@@ -18,8 +18,8 @@ class params:
         self.num_S = 15
         self.herd_radius = 5
         self.herd_center = np.random.rand(1,2)[0]*(self.boundary_max-self.boundary_min-self.herd_radius)# + self.boundary_min + 1
-        self.Rr = 1
-        self.Ro = 3
+        self.Rr = 3
+        self.Ro = 5
         self.Ra = 12
         self.visibility = 2*np.pi
         self.sheep_body = 0.2
@@ -69,6 +69,9 @@ class Sheep:
         angle_arithmatic = E.angleWrap(np.arctan2(self.s_dot[1],self.s_dot[0])) - self.heading
         self.heading += self.params.dt*angle_arithmatic
         self.pose = self.pose + np.linalg.norm(self.params.dt*self.s_dot)*np.array([np.cos(self.heading),np.sin(self.heading)])
+        self.zor = []
+        self.zoo = []
+        self.zoa = []
         return self
 
 class SheepMean:
@@ -210,7 +213,7 @@ class RLBase:
         destination = False
         r = 100 - abs(s[5])*10 - abs(s[4])*20
         if s[5] < self.params.goal_threshold:
-            r = -10000
+            r = 100
             destination = True
         return [r,destination]
 
@@ -324,11 +327,11 @@ class Animation:
     
 P = params()
 num_episodes = 1000
-actions = [[0,0],[0,2],[0,-2],[-2,0],[2,0]]
+actions = [[0,0],[0,10],[0,-10],[-10,0],[10,0]]
 alpha = 0.3
 gamma = 1
-epsilon = 0.001
-maxSteps = 2
+epsilon = 0.5
+maxSteps = 1000
 
 RL = RLBase(actions,alpha,gamma,epsilon,maxSteps,P)
 RL.states([0,80],[0,80],[0,2],[0,2],0,80,0,2*np.pi/10)
@@ -351,3 +354,22 @@ for eps in range(num_episodes):
     plt.show()
     plt.pause(0.0001)
     plt.close()
+
+# E = Environment(P)
+# dogs = E.agentGenerator(P.num_D,Dog)
+# sheeps = E.agentGenerator(P.num_S,Sheep)
+# init = 1
+# sheep_mean = SheepMean(sheeps,E,init)
+# init = 0
+# anim = Animation(dogs,sheeps,sheep_mean,P)
+
+# for i in range(maxSteps):
+#     # print(a)
+#     # print(s)
+#     for sh in range(len(sheeps)):
+#         sheeps[sh] = sheeps[sh].update(sheeps,dogs,E)
+#     E.goal(sheep_mean)
+#     sheep_mean = SheepMean(sheeps,E,init)
+#     anim.update(dogs,sheeps,sheep_mean)
+#     plt.show()
+#     plt.pause(0.0001)
